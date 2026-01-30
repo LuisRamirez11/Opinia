@@ -1,158 +1,141 @@
 import { useState, useEffect } from 'react';
 
-// Ajusta si tu puerto es diferente
-const API_URL = 'http://localhost:3000/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function Encuesta() {
-  // --- ESTADOS DE DATOS ---
-  const [paises, setPaises] = useState([]);
-  const [empresas, setEmpresas] = useState([]);
-  const [sedes, setSedes] = useState([]);
-  const [preguntas, setPreguntas] = useState([]);
-
-  // --- SELECCIONES ---
-  const [selectedPais, setSelectedPais] = useState('');
-  const [selectedEmpresa, setSelectedEmpresa] = useState('');
-  const [selectedSede, setSelectedSede] = useState('');
+  const [data, setData] = useState({ paises: [], empresas: [], sedes: [], preguntas: [] });
+  const [selection, setSelection] = useState({ pais: '', empresa: '', sede: '' });
   const [respuestas, setRespuestas] = useState({});
-
-  // --- UI ---
-  const [step, setStep] = useState(1); // 1: Filtros, 2: Encuesta, 3: Fin
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [surveyResult, setSurveyResult] = useState(null);
 
-  // 1. Cargar Países al inicio
+
   useEffect(() => {
     fetch(`${API_URL}/paises`)
       .then(res => res.json())
-      .then(data => setPaises(data))
-      .catch(err => {
-        console.error(err);
-        setError("Error conectando al servidor");
-      });
+      .then(paises => setData(prev => ({ ...prev, paises })))
+      .catch(() => setError("Error conectando al servidor"));
   }, []);
 
-  // 2. Cambio País -> Cargar Empresas
-  const handlePaisChange = async (e) => {
-    const id = e.target.value;
-    setSelectedPais(id);
-    // Resetear cascada
-    setSelectedEmpresa(''); setSelectedSede(''); setEmpresas([]); setSedes([]);
-    
-    if (!id) return;
+  const loadData = async (endpoint, updateKey, resetKeys = []) => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/empresas?pais_id=${id}`);
-      const data = await res.json();
-      setEmpresas(data);
-    } catch (e) { 
-      console.error(e);
-      setError("Error cargando empresas"); 
+      const res = await fetch(`${API_URL}/${endpoint}`);
+      const newData = await res.json();
+      setData(prev => {
+        const nextState = { ...prev, [updateKey]: newData };
+        resetKeys.forEach(k => nextState[k] = []);
+        return nextState;
+      });
+    } catch {
+      setError(`Error cargando ${updateKey}`);
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
-  // 3. Cambio Empresa -> Cargar Sedes
-  const handleEmpresaChange = async (e) => {
+  const handlePaisChange = (e) => {
     const id = e.target.value;
-    setSelectedEmpresa(id);
-    // Resetear cascada
-    setSelectedSede(''); setSedes([]);
-
-    if (!id) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_URL}/sedes?empresa_id=${id}`);
-      const data = await res.json();
-      setSedes(data);
-    } catch (e) { 
-      console.error(e);
-      setError("Error cargando sedes"); 
-    }
-    finally { setLoading(false); }
+    setSelection({ pais: id, empresa: '', sede: '' });
+    if (id) loadData(`empresas?pais_id=${id}`, 'empresas', ['sedes']);
   };
 
-  // 4. Empezar -> Cargar Preguntas (Requiere empresa_id según tu backend)
+  const handleEmpresaChange = (e) => {
+    const id = e.target.value;
+    setSelection(prev => ({ ...prev, empresa: id, sede: '' }));
+    if (id) loadData(`sedes?empresa_id=${id}`, 'sedes');
+  };
+
   const startEncuesta = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/preguntas?empresa_id=${selectedEmpresa}`);
-      const data = await res.json();
-      
-      if (data.length === 0) {
-        alert("Esta empresa no tiene preguntas configuradas.");
-        setLoading(false);
-        return;
-      }
-      
-      setPreguntas(data);
+      const res = await fetch(`${API_URL}/preguntas?empresa_id=${selection.empresa}`);
+      const preguntas = await res.json();
+      if (!preguntas.length) return alert("Sin preguntas configuradas.");
+      setData(prev => ({ ...prev, preguntas }));
       setStep(2);
-    } catch (e) { 
-      console.error(e);
-      setError("Error obteniendo preguntas"); 
+    } catch {
+      setError("Error obteniendo preguntas");
+    } finally {
+      setLoading(false);
     }
-    finally { setLoading(false); }
   };
 
-  // 5. Enviar -> POST
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
-    const payload = {
-      sede_id: selectedSede,
-      respuestas: Object.entries(respuestas).map(([pid, val]) => ({
-        pregunta_id: pid,
-        valor_respuesta: val // Tu backend pide 'valor_respuesta'
-      }))
-    };
-
     try {
+      const payload = {
+        sede_id: selection.sede,
+        respuestas: Object.entries(respuestas).map(([pid, val]) => ({ pregunta_id: pid, valor_respuesta: val }))
+      };
+      
       const res = await fetch(`${API_URL}/encuestas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
-      if (!res.ok) throw new Error('Error en el servidor');
-      const data = await res.json();
-      setSurveyResult(data);
+      if (!res.ok) throw new Error();
       setStep(3);
-    } catch (e) { 
-      console.error(e);
-      setError("Error al guardar la encuesta. Intente de nuevo."); 
-    } finally { 
-      setLoading(false); 
+    } catch {
+      setError("Error al guardar la encuesta.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleExport = () => {
-    if (!surveyResult) return;
-    const blob = new Blob([JSON.stringify(surveyResult, null, 2)], { type: 'application/json' });
+    // Helper para buscar nombres
+    const getName = (list, id) => list.find(item => item.id == id)?.nombre || 'N/A';
+    
+    // 1. Construir cabecera y contexto
+    let csvContent = "Concepto,Detalle\n";
+    csvContent += `Fecha,${new Date().toLocaleString()}\n`;
+    csvContent += `Pais,${getName(data.paises, selection.pais)}\n`;
+    csvContent += `Empresa,${getName(data.empresas, selection.empresa)}\n`;
+    csvContent += `Sede,${getName(data.sedes, selection.sede)}\n`;
+    csvContent += ",\n"; // Separador
+    
+    // 2. Construir respuestas
+    csvContent += "Pregunta,Respuesta\n";
+    data.preguntas.forEach((p, index) => {
+      const val = respuestas[p.id] || 'N/A';
+      // Escapar comillas dobles en textos
+      const safeText = p.texto_pregunta.replace(/"/g, '""');
+      const safeVal = String(val).replace(/"/g, '""');
+      
+      // Mapear valor numérico a texto si es escala
+      let finalVal = safeVal;
+      if (p.tipo_respuesta !== 'texto') {
+        const labels = {1: 'Muy malo', 2: 'Malo', 3: 'Regular', 4: 'Bueno', 5: 'Excelente'};
+        if (labels[val]) finalVal = `${val} - ${labels[val]}`;
+      }
+      
+      csvContent += `"${index + 1}. ${safeText}","${finalVal}"\n`;
+    });
+
+    // 3. Descargar archivo
+    const bom = "\uFEFF"; // Byte Order Mark para que Excel abra UTF-8 correctamente
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `encuesta_${surveyResult.encuesta.id}.json`;
-    document.body.appendChild(a);
+    a.download = `encuesta_resultado_${new Date().getTime()}.csv`;
     a.click();
-    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
-  // --- VISTAS ---
   if (step === 3) return (
     <article className="opinia-card fade-in">
       <div className="opinia-success">
-        <div className="icon"></div>
-        <h2>¡Encuesta Guardada Exitosamente!</h2>
-        <p>Gracias por tomarse el tiempo de compartir su opinión.</p>
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem' }}>
-            <button onClick={handleExport} className="opinia-secondary">
-              Exportar Resultado
-            </button>
-            <button onClick={() => window.location.reload()}>
-            Nueva Encuesta
-            </button>
+        <div className="success-icon">✓</div>
+        <h2>¡Gracias por tu opinión!</h2>
+        <p>Tu respuesta ha sido registrada exitosamente.</p>
+        <div className="actions">
+            <button onClick={() => window.location.reload()} className="opinia-btn primary">Nueva Encuesta</button>
+            <button onClick={handleExport} className="opinia-btn outline">Exportar Resultado</button>
         </div>
       </div>
     </article>
@@ -160,86 +143,57 @@ export default function Encuesta() {
 
   return (
     <article className="opinia-card fade-in">
-      <header>
-        <h2>{loading ? 'Cargando...' : 'Evaluación de Servicio'}</h2>
-      </header>
-
-      <div className="opinia-loading" style={{ display: loading && step === 1 ? 'block' : 'none' }}>
-        <progress />
-      </div>
-
+      <header><h2>{loading ? 'Cargando...' : 'Evaluación de Servicio'}</h2></header>
+      {loading && <progress />}
       {error && <mark>{error}</mark>}
 
       {step === 1 && (
         <form>
-          <label>
-            <span className="step-number">1</span>
-            País
-            <select value={selectedPais} onChange={handlePaisChange} disabled={loading}>
-              <option value="">Seleccione un país...</option>
-              {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          <label>1. País
+            <select value={selection.pais} onChange={handlePaisChange} disabled={loading}>
+              <option value="">Seleccione...</option>
+              {data.paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
           </label>
-
-          <label>
-            <span className="step-number">2</span>
-            Empresa
-            <select value={selectedEmpresa} onChange={handleEmpresaChange} disabled={!selectedPais || loading}>
-              <option value="">{selectedPais ? 'Seleccione una empresa...' : 'Primero seleccione un país'}</option>
-              {empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+          <label>2. Empresa
+            <select value={selection.empresa} onChange={handleEmpresaChange} disabled={!selection.pais || loading}>
+              <option value="">Seleccione...</option>
+              {data.empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
             </select>
           </label>
-
-          <label>
-            <span className="step-number">3</span>
-            Sede
-            <select value={selectedSede} onChange={e => setSelectedSede(e.target.value)} disabled={!selectedEmpresa || loading}>
-              <option value="">{selectedEmpresa ? 'Seleccione una sede...' : 'Primero seleccione una empresa'}</option>
-              {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          <label>3. Sede
+            <select value={selection.sede} onChange={e => setSelection(prev => ({ ...prev, sede: e.target.value }))} disabled={!selection.empresa || loading}>
+              <option value="">Seleccione...</option>
+              {data.sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
           </label>
-
-          <button 
-            type="button" 
-            disabled={!selectedSede || loading} 
-            onClick={startEncuesta}
-          >
-            {loading ? 'Cargando...' : 'Comenzar Encuesta'}
-          </button>
+          <button type="button" disabled={!selection.sede || loading} onClick={startEncuesta}>Comenzar</button>
         </form>
       )}
 
       {step === 2 && (
         <form onSubmit={handleSubmit}>
-          <p><small>Por favor responda las siguientes preguntas sobre su experiencia:</small></p>
-          
-          {preguntas.map((p, i) => (
+          {data.preguntas.map((p, i) => (
             <div key={p.id} className="question-item fade-in">
-              <label>
-                <strong>Pregunta {i+1}:</strong> {p.texto_pregunta}
+              <label><strong>{i+1}.</strong> {p.texto_pregunta}
                 {p.tipo_respuesta === 'texto' ? (
-                  <input 
-                    required 
-                    placeholder="Escriba su opinión aquí..."
-                    onChange={e => setRespuestas({...respuestas, [p.id]: e.target.value})}
-                  />
+                  <input required onChange={e => setRespuestas({...respuestas, [p.id]: e.target.value})} />
                 ) : (
                   <select required onChange={e => setRespuestas({...respuestas, [p.id]: e.target.value})} defaultValue="">
-                    <option value="" disabled>Seleccione una calificación...</option>
-                    <option value="1">1 - Muy insatisfecho</option>
-                    <option value="2">2 - Insatisfecho</option>
-                    <option value="3">3 - Neutral</option>
-                    <option value="4">4 - Satisfecho</option>
-                    <option value="5">5 - Muy satisfecho</option>
+                    <option value="" disabled>Calificación...</option>
+                    {[
+                      { val: 1, label: '1 - Muy malo' },
+                      { val: 2, label: '2 - Malo' },
+                      { val: 3, label: '3 - Regular' },
+                      { val: 4, label: '4 - Bueno' },
+                      { val: 5, label: '5 - Excelente' }
+                    ].map(opt => <option key={opt.val} value={opt.val}>{opt.label}</option>)}
                   </select>
                 )}
               </label>
             </div>
           ))}
-          
-          <button type="submit" disabled={loading}>
-            {loading ? 'Enviando...' : 'Enviar Respuestas'}
-          </button>
+          <button type="submit" disabled={loading}>Enviar Respuestas</button>
         </form>
       )}
     </article>

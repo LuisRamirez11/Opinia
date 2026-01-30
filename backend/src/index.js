@@ -10,7 +10,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Status Endpoint
 app.get('/', (req, res) => {
     res.status(200).json({
         status: 'ok',
@@ -21,13 +20,11 @@ app.get('/', (req, res) => {
 
 app.use('/api', routes);
 
-// Error Handler
 app.use((err, req, res, next) => {
     console.error(err);
     res.status(500).json({ error: err.message || 'Error del servidor' });
 });
 
-// Local Dev Server
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
