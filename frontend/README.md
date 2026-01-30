@@ -1,16 +1,56 @@
-# React + Vite
+# Opinia - Sistema de Evaluación de Servicio
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Este proyecto es una solución técnica enfocada en la **simplicidad, usabilidad y escalabilidad** para la recolección de encuestas de satisfacción en puntos de servicio.
 
-Currently, two official plugins are available:
+## 🚀 Ejecución del Proyecto
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+1.  Instalar dependencias:
+    ```bash
+    npm install
+    ```
+2.  Correr en modo desarrollo:
+    ```bash
+    npm run dev
+    ```
 
-## React Compiler
+## 🏗 Arquitectura y Decisiones Técnicas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+El desarrollo se guió por el principio de **KISS (Keep It Simple, Stupid)** y la priorización del valor para el usuario final, alineado con los requerimientos de la evaluación técnica.
 
-## Expanding the ESLint configuration
+### 1. Gestión de Catálogos (Países, Empresas, Sedes)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+**Decisión**: Se optó por **NO implementar un CRUD (Interfaz de Administración)** para los catálogos en esta fase inicial.
+**Justificación**:
+
+- El requerimiento explícito permite que los catálogos sean "precargados o definidos según criterio".
+- Dado el volumen inicial bajo y la prioridad de tiempo, el esfuerzo de desarrollo se centró en **perfeccionar el flujo del usuario final (la encuesta)** y la **integridad de los datos**, en lugar de crear herramientas internas de administración que no aportan valor directo al cliente en el MVP.
+- **Mejora Futura**: Implementar un Backoffice seguro para la gestión dinámica de estos datos.
+
+### 2. Exportación de Datos (CSV vs JSON)
+
+**Decisión**: Implementación de exportación directa a **CSV**.
+**Justificación**:
+
+- Aunque un JSON es más fácil de generar técnicamente, es inaccesible para el usuario operativo (Gerentes de Sede).
+- El CSV permite abrir los resultados inmediatamente en Excel/Sheets, cumpliendo con el criterio de **usabilidad** y permitiendo análisis instantáneo sin transformación de datos.
+
+### 3. Frontend & UX
+
+**Tecnología**: React + Vite + Pico CSS.
+**Enfoque**:
+
+- **Pico CSS**: Elegido para garantizar una estructura semántica y responsive sin la sobrecarga de clases utilitarias masivas, manteniendo el código limpio y mantenible.
+- **Diseño**: Interfaz "Distraction-free" enfocada en la tasa de finalización de la encuesta.
+- **Feedback**: Sistema robusto de notificaciones y estados de carga para mantener al usuario informado en todo momento.
+
+## 🔮 Roadmap / Mejoras
+
+Con más tiempo, las siguientes características serían prioritarias:
+
+- **Panel Administrativo (Backoffice)**: Para ABM de empresas y preguntas.
+- **Dashboard de Analítica**: Visualización gráfica de las respuestas en tiempo real.
+- **Autenticación**: Login para administradores.
+
+---
+
+**Desarrollado para Evaluación Técnica 2026**
