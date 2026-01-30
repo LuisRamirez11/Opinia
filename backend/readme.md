@@ -1,61 +1,37 @@
 # Backend API - Opinia
 
-This is the backend for the Opinia project, built with Express.js and Supabase.
+API REST para la aplicación Opinia, construida con Express.js y Supabase.
 
-## Project Structure
-
-The project has been refactored for professionalism and maintainability:
-
-- **src/app.js**: Express application setup and middleware configuration.
-- **src/index.js**: Server entry point.
-- **src/controllers/**: Logic for handling requests (separation of concerns).
-- **src/routes/**: Route definitions mapping to controllers.
-- **src/middleware/**: Custom middleware (e.g., centralized error handling).
-- **src/config/**: Configuration files (database connection).
-
-## Prerequisites
+### Tecnologías
 
 - Node.js
-- Supabase account and project
+- Express.js
+- Supabase
 
-## Setup
+### Librerías Principales
 
-1.  Install dependencies:
+- @supabase/supabase-js
+- cors
+- dotenv
+- serverless-http
 
-    ```bash
-    npm install
-    ```
+### Endpoints
 
-2.  Environment Variables:
-    Create a `.env` file in the root directory with:
-    ```env
-    SUPABASE_URL=your_supabase_url
-    SUPABASE_SECRET_KEY=your_supabase_key
-    PORT=3000
-    ```
+- **GET /api/paises**: Listar todos los países.
+- **POST /api/paises**: Crear un nuevo país.
+- **GET /api/empresas**: Listar empresas (filtro: `pais_id`).
+- **POST /api/empresas**: Crear una nueva empresa.
+- **GET /api/sedes**: Listar sedes (filtros: `pais_id`, `empresa_id`).
+- **GET /api/preguntas**: Listar preguntas activas (filtro: `empresa_id`).
+- **POST /api/preguntas**: Crear una nueva pregunta.
+- **POST /api/encuestas**: Enviar una respuesta de encuesta.
+- **GET /api/encuestas/reporte**: Obtener reporte de resultados.
 
-## Running the Server
+### Instrucciones de ejecución
 
-### Development
-
-```bash
-npm run dev
-```
-
-(Ensure `nodemon` is installed or use `node src/index.js`)
-
-### Production
-
-The application is ready for serverless deployment (e.g., AWS Lambda, Vercel) via `serverless-http`.
-
-## API Endpoints
-
-- **GET /api/paises**: List all countries.
-- **POST /api/paises**: Create a new country.
-- **GET /api/empresas?pais_id={id}**: List companies for a specific country.
-- **POST /api/empresas**: Create a new company.
-- **GET /api/sedes**: List headquarters (optional filters: `pais_id`, `empresa_id`).
-- **GET /api/preguntas?empresa_id={id}**: List active questions for a company.
-- **POST /api/preguntas**: Create a new question.
-- **POST /api/encuestas**: Submit a new survey response.
-- **GET /api/encuestas/reporte**: Get survey results report.
+1. Instalar dependencias: `npm install`
+2. Configurar variables de entorno en `.env`:
+   - `SUPABASE_URL`
+   - `SUPABASE_SECRET_KEY`
+   - `PORT`
+3. Ejecutar en desarrollo: `npm run dev`
