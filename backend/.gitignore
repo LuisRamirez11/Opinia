@@ -2,6 +2,7 @@
 node_modules/
 
 # archivos de entorno
+.env
 .env.*
 
 # archivos de build
