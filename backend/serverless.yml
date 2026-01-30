@@ -1,0 +1,37 @@
+service: opinia-backend
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: us-east-1
+  stage: ${opt:stage, 'dev'}
+  environment:
+    NODE_ENV: production
+    SUPABASE_URL: ${env:SUPABASE_URL}
+    SUPABASE_SECRET_KEY: ${env:SUPABASE_SECRET_KEY}
+
+package:
+  patterns:
+    - "!./.env"
+    - "!./.env.*"
+
+functions:
+  api:
+    handler: src/index.handler
+    events:
+      - http:
+          path: /
+          method: ANY
+          cors: true
+      - http:
+          path: /{proxy+}
+          method: ANY
+          cors: true
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3000
