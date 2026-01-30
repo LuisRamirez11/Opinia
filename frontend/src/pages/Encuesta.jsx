@@ -20,13 +20,17 @@ export default function Encuesta() {
   const [step, setStep] = useState(1); // 1: Filtros, 2: Encuesta, 3: Fin
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [surveyResult, setSurveyResult] = useState(null);
 
   // 1. Cargar Países al inicio
   useEffect(() => {
     fetch(`${API_URL}/paises`)
       .then(res => res.json())
       .then(data => setPaises(data))
-      .catch(err => setError("Error conectando al servidor"));
+      .catch(err => {
+        console.error(err);
+        setError("Error conectando al servidor");
+      });
   }, []);
 
   // 2. Cambio País -> Cargar Empresas
@@ -42,7 +46,10 @@ export default function Encuesta() {
       const res = await fetch(`${API_URL}/empresas?pais_id=${id}`);
       const data = await res.json();
       setEmpresas(data);
-    } catch (e) { setError("Error cargando empresas"); }
+    } catch (e) { 
+      console.error(e);
+      setError("Error cargando empresas"); 
+    }
     finally { setLoading(false); }
   };
 
@@ -59,7 +66,10 @@ export default function Encuesta() {
       const res = await fetch(`${API_URL}/sedes?empresa_id=${id}`);
       const data = await res.json();
       setSedes(data);
-    } catch (e) { setError("Error cargando sedes"); }
+    } catch (e) { 
+      console.error(e);
+      setError("Error cargando sedes"); 
+    }
     finally { setLoading(false); }
   };
 
@@ -78,7 +88,10 @@ export default function Encuesta() {
       
       setPreguntas(data);
       setStep(2);
-    } catch (e) { setError("Error obteniendo preguntas"); }
+    } catch (e) { 
+      console.error(e);
+      setError("Error obteniendo preguntas"); 
+    }
     finally { setLoading(false); }
   };
 
@@ -103,24 +116,44 @@ export default function Encuesta() {
       });
 
       if (!res.ok) throw new Error('Error en el servidor');
+      const data = await res.json();
+      setSurveyResult(data);
       setStep(3);
     } catch (e) { 
+      console.error(e);
       setError("Error al guardar la encuesta. Intente de nuevo."); 
     } finally { 
       setLoading(false); 
     }
   };
 
+  const handleExport = () => {
+    if (!surveyResult) return;
+    const blob = new Blob([JSON.stringify(surveyResult, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `encuesta_${surveyResult.encuesta.id}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
   // --- VISTAS ---
   if (step === 3) return (
     <article className="opinia-card fade-in">
       <div className="opinia-success">
-        <div className="icon">✅</div>
+        <div className="icon"></div>
         <h2>¡Encuesta Guardada Exitosamente!</h2>
         <p>Gracias por tomarse el tiempo de compartir su opinión.</p>
-        <button onClick={() => window.location.reload()}>
-          Nueva Encuesta
-        </button>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginTop: '1rem' }}>
+            <button onClick={handleExport} className="opinia-secondary">
+              Exportar Resultado
+            </button>
+            <button onClick={() => window.location.reload()}>
+            Nueva Encuesta
+            </button>
+        </div>
       </div>
     </article>
   );
@@ -128,23 +161,21 @@ export default function Encuesta() {
   return (
     <article className="opinia-card fade-in">
       <header>
-        <h2>{loading ? '⏳ Cargando...' : '📋 Evaluación de Servicio'}</h2>
+        <h2>{loading ? 'Cargando...' : 'Evaluación de Servicio'}</h2>
       </header>
 
-      {loading && step === 1 && (
-        <div className="opinia-loading">
-          <progress />
-        </div>
-      )}
+      <div className="opinia-loading" style={{ display: loading && step === 1 ? 'block' : 'none' }}>
+        <progress />
+      </div>
 
       {error && <mark>{error}</mark>}
 
-      {step === 1 && !loading && (
+      {step === 1 && (
         <form>
           <label>
             <span className="step-number">1</span>
             País
-            <select value={selectedPais} onChange={handlePaisChange}>
+            <select value={selectedPais} onChange={handlePaisChange} disabled={loading}>
               <option value="">Seleccione un país...</option>
               {paises.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
             </select>
@@ -153,7 +184,7 @@ export default function Encuesta() {
           <label>
             <span className="step-number">2</span>
             Empresa
-            <select value={selectedEmpresa} onChange={handleEmpresaChange} disabled={!selectedPais}>
+            <select value={selectedEmpresa} onChange={handleEmpresaChange} disabled={!selectedPais || loading}>
               <option value="">{selectedPais ? 'Seleccione una empresa...' : 'Primero seleccione un país'}</option>
               {empresas.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
             </select>
@@ -162,7 +193,7 @@ export default function Encuesta() {
           <label>
             <span className="step-number">3</span>
             Sede
-            <select value={selectedSede} onChange={e => setSelectedSede(e.target.value)} disabled={!selectedEmpresa}>
+            <select value={selectedSede} onChange={e => setSelectedSede(e.target.value)} disabled={!selectedEmpresa || loading}>
               <option value="">{selectedEmpresa ? 'Seleccione una sede...' : 'Primero seleccione una empresa'}</option>
               {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
@@ -170,10 +201,10 @@ export default function Encuesta() {
 
           <button 
             type="button" 
-            disabled={!selectedSede} 
+            disabled={!selectedSede || loading} 
             onClick={startEncuesta}
           >
-            Comenzar Encuesta →
+            {loading ? 'Cargando...' : 'Comenzar Encuesta'}
           </button>
         </form>
       )}
@@ -195,11 +226,11 @@ export default function Encuesta() {
                 ) : (
                   <select required onChange={e => setRespuestas({...respuestas, [p.id]: e.target.value})} defaultValue="">
                     <option value="" disabled>Seleccione una calificación...</option>
-                    <option value="1">⭐ 1 - Muy insatisfecho</option>
-                    <option value="2">⭐⭐ 2 - Insatisfecho</option>
-                    <option value="3">⭐⭐⭐ 3 - Neutral</option>
-                    <option value="4">⭐⭐⭐⭐ 4 - Satisfecho</option>
-                    <option value="5">⭐⭐⭐⭐⭐ 5 - Muy satisfecho</option>
+                    <option value="1">1 - Muy insatisfecho</option>
+                    <option value="2">2 - Insatisfecho</option>
+                    <option value="3">3 - Neutral</option>
+                    <option value="4">4 - Satisfecho</option>
+                    <option value="5">5 - Muy satisfecho</option>
                   </select>
                 )}
               </label>
@@ -207,7 +238,7 @@ export default function Encuesta() {
           ))}
           
           <button type="submit" disabled={loading}>
-            {loading ? 'Enviando...' : 'Enviar Respuestas ✓'}
+            {loading ? 'Enviando...' : 'Enviar Respuestas'}
           </button>
         </form>
       )}
