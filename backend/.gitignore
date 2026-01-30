@@ -1,0 +1,16 @@
+# dependencias
+node_modules/
+
+# archivos de entorno
+.env.*
+
+# archivos de build
+dist/
+build/
+
+# archivos temporales
+tmp/
+.cache/
+
+# carpetas vscode
+.vscode/
