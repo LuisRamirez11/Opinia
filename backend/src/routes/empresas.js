@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 
+// GET /api/empresas
 router.get('/', async (req, res) => {
     try {
         const { pais_id } = req.query;        
@@ -22,15 +23,7 @@ router.get('/', async (req, res) => {
             if (filialesError) throw filialesError;
             const empresas = filiales.map(filial => filial.empresa);            
             return res.status(200).json(empresas);
-        }  
-        const { data, error } = await supabase
-            .from('empresa')
-            .select('id, nombre, fecha_creacion')
-            .is('fecha_eliminacion', null)
-            .order('nombre');
-        if (error) throw error;
-        res.status(200).json(data);
-        
+        }    
     } catch (err) {
         console.error('Error al obtener empresas:', err);
         res.status(500).json({
@@ -40,6 +33,7 @@ router.get('/', async (req, res) => {
     }
 });
 
+// POST /api/empresas
 router.post('/', async (req, res) => {
     try {
         const { nombre } = req.body;

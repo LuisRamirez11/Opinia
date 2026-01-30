@@ -2,47 +2,6 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 
-// GET /api/encuestas/preguntas - Obtener preguntas activas de una empresa
-router.get('/preguntas', async (req, res) => {
-    try {
-        const { empresa_id } = req.query;
-        
-        if (!empresa_id) {
-            return res.status(400).json({
-                error: 'El parámetro empresa_id es requerido'
-            });
-        }
-        // Verificar que la empresa existe
-        const { data: empresaExiste, error: empresaError } = await supabase
-            .from('empresa')
-            .select('id')
-            .eq('id', empresa_id)
-            .is('fecha_eliminacion', null)
-            .single();  
-        if (empresaError || !empresaExiste) {
-            return res.status(404).json({
-                error: 'La empresa especificada no existe'
-            });
-        }
-        // Obtener preguntas activas de la empresa ordenadas
-        const { data, error } = await supabase
-            .from('pregunta')
-            .select('id, texto_pregunta, tipo_respuesta, orden')
-            .eq('empresa_id', empresa_id)
-            .eq('activo', true)
-            .is('fecha_eliminacion', null)
-            .order('orden', { ascending: true });
-        if (error) throw error;  
-        res.status(200).json(data);      
-    } catch (err) {
-        console.error('Error al obtener preguntas:', err);
-        res.status(500).json({
-            error: 'Error al obtener preguntas',
-            detalle: err.message
-        });
-    }
-});
-
 // POST /api/encuestas - Crear nueva encuesta con respuestas
 router.post('/', async (req, res) => {
     try {
