@@ -1,85 +1,87 @@
-# Opinia Backend
+# Opinia - Servicio de encuestas
 
-Backend para el sistema de encuestas Opinia, construido con Node.js, Express y Serverless Framework para despliegue en AWS Lambda.
-
-## Descripción
-
-Este servicio maneja la lógica de negocio para las encuestas, conectándose a una base de datos Supabase. Está diseñado para ser desplegado como una función Lambda serverless, pero también puede ejecutarse localmente.
-
-## Requisitos Previos
-
-- Node.js 18.x o superior
-- Cuenta en AWS (para despliegue)
-- Proyecto en Supabase (para base de datos)
-
-## Instalación
-
-1.  Clonar el repositorio (si no lo has hecho):
-
-    ```bash
-    git clone <url-del-repo>
-    cd opinia/backend
-    ```
-
-2.  Instalar dependencias:
-    ```bash
-    npm install
-    ```
-
-## Configuración
-
-El proyecto utiliza variables de entorno para la configuración.
-
-### Desarrollo Local
-
-Crea un archivo `.env` en la raíz del directorio `backend` con las siguientes variables:
-
-```ini
-SUPABASE_URL=tu_url_de_supabase
-SUPABASE_KEY=tu_service_role_key_o_anon_key
-NODE_ENV=development
-```
-
-> **Nota:** El archivo `.env` permite que la aplicación se conecte a Supabase localmente. Al desplegar con `serverless deploy`, si este archivo no está excluido en `.serverlessignore` o `.gitignore`, se subirá junto con el código, permitiendo que la Lambda acceda a estas variables.
-
-## Uso
-
-### Ejecutar Localmente
-
-Para desarrollo, puedes usar `nodemon` (si está configurado) o `serverless-offline` para simular el entorno Lambda.
-
-```bash
-# Opción recomendada para desarrollo rápido
-npm run dev
-# O si usas serverless-offline
-npx serverless offline
-```
-
-### Endpoints Principales
-
-- `GET /`: Verifica el estado del servicio.
-  - Respuesta: `{ "status": "ok", "service": "opinia-backend", ... }`
+Opinia es la solución a un problema común de las empresas que buscan medir la satisfacción de sus clientes.
 
 ## Despliegue
 
-Para desplegar en AWS Lambda utilizando Serverless Framework:
+El proyecto se encuentra desplegado y accesible públicamente en los servicios de aws:
 
-1.  Configura tus credenciales de AWS:
+- **Aplicación Web**: [Opinia](https://d3c179xqo0jdvh.cloudfront.net/)
+- **Backend (API)**: [Opinia API](https://6kpeior3gl.execute-api.us-east-1.amazonaws.com/dev/api)
 
-    ```bash
-    aws configure
-    ```
+## Flujo General del Sistema
 
-2.  Ejecuta el comando de despliegue:
-    ```bash
-    npx serverless deploy
-    ```
+El sistema opera mediante un flujo lineal enfocado en la simplicidad para el usuario final:
 
-Esto empaquetará la aplicación y la subirá a AWS, devolviendo la URL del API Gateway.
+1. El usuario accede a la aplicación web.
+2. La interfaz solicita al Backend los catálogos necesarios (países, empresas y sedes) para configurar el formulario.
+3. El usuario completa la encuesta, seleccionando opciones y proporcionando retroalimentación.
+4. El Frontend valida los datos y los envía al Backend.
+5. El Backend procesa la información y la almacena de forma persistente en la base de datos.
 
-## Estructura del Proyecto
+## Arquitectura
 
-- `src/app.js`: Configuración de la aplicación Express y middlewares.
-- `src/index.js`: Punto de entrada para la función Lambda (`handler`).
-- `src/routes/`: Definición de rutas de la API.
-- `serverless.yml`: Configuración de infraestructura (AWS Lambda, API Gateway).
+![Diagrama de Arquitectura](./images/diagrama_arquitectura.png)
+
+## Diseño de Base de Datos
+
+![Diagrama de Base de Datos](./images/diagram_ER_BD.png)
+
+## Decisiones Técnicas
+
+### Frontend
+
+Se siguio una arquitectura de aplicación de una sola pagina utilizando React y Vite para garantizar tiempos de carga rápidos y una experiencia fluida. Se implemento Pico CSS para estilizar la aplicación, por su ligereza y capacidad de ofrecer un diseño limpio y sin la sobrecarga de frameworks más complejos.
+
+### Backend
+
+Se desarrolló una API REST con Express.js para manejar la lógica de negocio. Se eligió esta tecnología por su robustez y facilidad de integración. La arquitectura está modularizada para facilitar el mantenimiento y la escalabilidad.
+
+### Base de Datos
+
+Supabase se utiliza como capa de persistencia debido a su escalabilidad y facilidad de configuración. Se implementaron identificadores UUID para garantizar unicidad global y "soft deletes" para mantener la integridad histórica de los datos.
+
+## Mejoras Futuras
+
+- **Panel de Administración**: Un panel de administración para gestionar empresas, sedes y preguntas sin intervenir en la base de datos directamente.
+- **Autenticación**: Sistema de login para roles administrativos.
+- **Dashboard de Métricas**: Visualización de datos en tiempo real para analizar la satisfacción por empresa o región.
+
+## Ejecución Local
+
+Instrucciones para ejecutar el proyecto en un entorno de desarrollo.
+
+### Requisitos Previos
+
+- Node.js (Version 18 o superior)
+- npm
+- Cuenta en Supabase.
+
+### Pasos
+
+1. **Clonar el repositorio**:
+
+   ```bash
+   git clone https://github.com/LuisRamirez11/Opinia.git
+   ```
+
+2. **Configurar y ejecutar el Backend**:
+
+   ```bash
+   cd backend
+   npm install
+   ```
+
+   Crear un archivo .env en la carpeta backend con las variables: SUPABASE_URL, SUPABASE_SECRET_KEY y PORT.
+
+   ```bash
+   npm run dev
+   ```
+
+3. **Configurar y ejecutar el Frontend**:
+   Abrir una nueva terminal y navegar a la carpeta frontend.
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
